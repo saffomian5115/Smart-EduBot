@@ -1,0 +1,78 @@
+SMART EDUBOT — TODO LIST (Backend First, Then Frontend)
+
+================================================================================
+SETUP MODULE (Pehle karo)
+================================================================================
+[ ] Ollama install karo (ollama.com se) — ye local LLM server hai
+[ ] Ollama mein model pull karo: ollama pull llama2 (~3.8GB download)
+[ ] Python virtual environment banao: python -m venv venv
+[ ] React project setup: npx create-react-app frontend
+[ ] Project folder structure banao (backend / frontend / storage)
+
+================================================================================
+BACKEND MODULE 1 — PDF Upload & Processing (FastAPI)
+================================================================================
+[ ] FastAPI app banao + CORS lagao (main.py)
+[ ] PDF upload endpoint: POST /upload-pdf
+[ ] PyMuPDF se PDF ka text extract karo
+[ ] Text ko chunks mein divide karo (500 tokens, 50 overlap) — chunker.py
+[ ] Book ka naam + metadata JSON mein save karo (books.json)
+
+================================================================================
+BACKEND MODULE 2 — Embeddings & Vector DB
+================================================================================
+[ ] sentence-transformers install + model load karo (embedder.py)
+[ ] ChromaDB setup karo — har book ka alag collection (vector_store.py)
+[ ] Chunks ko embed karke ChromaDB mein store karo
+[ ] Duplicate upload check lagao (same book dobara index na ho)
+
+================================================================================
+BACKEND MODULE 3 — RAG Query Engine
+================================================================================
+[ ] Query endpoint banao: POST /ask (book_id + question)
+[ ] Selected book ke ChromaDB collection se top-5 chunks retrieve karo
+[ ] Prompt template banao (context + question) — prompt_builder.py
+[ ] Ollama API call karo (LLaMA 2) aur response lo (llm.py)
+[ ] Streaming response support lagao (real-time typing effect)
+
+================================================================================
+BACKEND MODULE 4 — Book Management API
+================================================================================
+[ ] Saved books list endpoint: GET /books
+[ ] Book delete endpoint: DELETE /books/{book_id}
+[ ] Chat history save/load karo per book (history.json)
+
+================================================================================
+FRONTEND MODULE 5 — Upload Page (React)
+================================================================================
+[ ] PDF drag-and-drop upload component banao (UploadPage.jsx)
+[ ] Upload progress bar dikhao (axios ke saath)
+[ ] Success/error toast messages lagao
+[ ] Upload hone ke baad automatically chat pe redirect karo
+
+================================================================================
+FRONTEND MODULE 6 — Book Selector & Sidebar
+================================================================================
+[ ] Sidebar component — saved books list dikhao (Sidebar.jsx)
+[ ] Book select karne pe chat history load ho
+[ ] Active book highlight karo sidebar mein
+[ ] Book delete button + confirm dialog lagao
+
+================================================================================
+FRONTEND MODULE 7 — Chat Interface
+================================================================================
+[ ] Chat messages component (student + bot bubbles) — ChatWindow.jsx
+[ ] Streaming text effect implement karo (real-time typing)
+[ ] Input box + send button (MessageInput.jsx)
+[ ] Loading spinner jab LLaMA soch raha ho
+[ ] Auto-scroll to bottom on new message
+[ ] "Koi book select nahi" empty state dikhao
+
+================================================================================
+TESTING & POLISH MODULE
+================================================================================
+[ ] Puri flow test karo: upload → select → question → answer
+[ ] Edge cases: empty PDF, corrupt file, very long question
+[ ] Mobile responsive check karo
+[ ] README likho with installation steps
+
