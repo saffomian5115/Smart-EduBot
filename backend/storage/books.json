@@ -1,0 +1,26 @@
+[
+  {
+    "book_id": "29713e14-786c-4d72-9ee0-984d6ac64585",
+    "filename": "DBMS-File Structure.pdf",
+    "title": "DBMS-File Structure",
+    "pages": 2,
+    "chunk_count": 2,
+    "indexed": false
+  },
+  {
+    "book_id": "2bb4cfa2-d643-4fd2-a9c8-85c7fa64c409",
+    "filename": "Recovery Techniques.pdf",
+    "title": "Recovery Techniques",
+    "pages": 4,
+    "chunk_count": 4,
+    "indexed": true
+  },
+  {
+    "book_id": "3e07860c-41a0-4e06-bcb1-1ff2206a8dda",
+    "filename": "Data Models in DBMS - GeeksforGeeks.pdf",
+    "title": "Data Models in DBMS - GeeksforGeeks",
+    "pages": 4,
+    "chunk_count": 4,
+    "indexed": false
+  }
+]
