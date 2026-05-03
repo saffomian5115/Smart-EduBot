@@ -144,7 +144,7 @@ async def ask(req: AskRequest):
         raise HTTPException(status_code=400, detail="Book abhi index nahi hui. Thodi der mein try karo.")
 
     # Top-5 relevant chunks retrieve karo
-    chunks = retrieve_chunks(req.book_id, req.question, top_k=5)
+    chunks = retrieve_chunks(req.book_id, req.question, top_k=3)
     if not chunks:
         raise HTTPException(status_code=404, detail="Koi relevant content nahi mila.")
 

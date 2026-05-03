@@ -21,7 +21,7 @@ async def ask_llm(prompt: str) -> str:
     Returns:
         LLM ka full response text
     """
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         try:
             response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
@@ -32,7 +32,8 @@ async def ask_llm(prompt: str) -> str:
                     "options": {
                         "temperature": 0.3,   # Zyada focused answer ke liye
                         "top_p":       0.9,
-                        "num_predict": 512,   # Max tokens in response
+                        "num_predict": 100,
+                        "num_ctx":     2048,   
                     }
                 }
             )
@@ -55,7 +56,7 @@ async def ask_llm_stream(prompt: str) -> AsyncGenerator[str, None]:
     Yields:
         Response ke text tokens ek ek karke
     """
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         try:
             async with client.stream(
                 "POST",
@@ -67,7 +68,8 @@ async def ask_llm_stream(prompt: str) -> AsyncGenerator[str, None]:
                     "options": {
                         "temperature": 0.3,
                         "top_p":       0.9,
-                        "num_predict": 512,
+                        "num_predict": 100,
+                        "num_ctx":     2048,
                     }
                 }
             ) as response:
