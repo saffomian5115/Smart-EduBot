@@ -1,6 +1,6 @@
 [
   {
-    "book_id": "2bb4cfa2-d643-4fd2-a9c8-85c7fa64c409",
+    "book_id": "b45b4865-05f3-4c2a-8989-1889d5689890",
     "filename": "Recovery Techniques.pdf",
     "title": "Recovery Techniques",
     "pages": 4,
@@ -8,7 +8,7 @@
     "indexed": true
   },
   {
-    "book_id": "98edb436-cbeb-4cbc-b3c1-73afa33fe336",
+    "book_id": "1e06eee3-12e8-4f23-bbac-7d330079388c",
     "filename": "Transactional and concurrency techniques.pdf",
     "title": "Transactional and concurrency techniques",
     "pages": 5,

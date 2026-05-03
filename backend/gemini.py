@@ -8,7 +8,7 @@ import json
 from typing import AsyncGenerator
 
 GEMINI_API_BASE = "https://generativeai.googleapis.com/v1beta"
-GEMINI_MODEL    = "gemini-2.0-flash"
+GEMINI_MODEL    = "gemini-2.5-flash"
 
 
 async def ask_gemini(prompt: str, api_key: str) -> str:

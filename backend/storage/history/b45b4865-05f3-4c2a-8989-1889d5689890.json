@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "give me summary in just 4 lines"
+  },
+  {
+    "role": "assistant",
+    "content": "[ERROR] Gemini API key invalid hai ya quota khatam ho gaya."
+  },
+  {
+    "role": "user",
+    "content": "give me summary in just 4 lines"
+  },
+  {
+    "role": "assistant",
+    "content": "Database recovery techniques are crucial for restoring a database to a correct and consistent state after failures. They primarily rely on log files to record all transaction changes, enabling operations like UNDO for incomplete transactions and REDO for completed ones. Common techniques include log-based recovery, deferred and immediate updates, backup recovery, rollback, and savepoints. These methods collectively ensure data atomicity, consistency, durability, and overall database reliability."
+  }
+]

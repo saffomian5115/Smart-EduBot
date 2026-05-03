@@ -1,9 +1,118 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
+// ── MessageActions: Copy + TTS buttons ──────────────────────────────
+function MessageActions({ content, isStreaming }) {
+  const [copied, setCopied]     = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+
+  const handleCopy = async () => {
+    if (isStreaming) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard access denied
+    }
+  };
+
+  const handleTTS = () => {
+    if (isStreaming) return;
+
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(content);
+
+    // Simple language detect — Urdu chars
+    const urduChars = /[\u0600-\u06FF]/;
+    utterance.lang = urduChars.test(content) ? "ur-PK" : "en-US";
+    utterance.rate  = 0.95;
+    utterance.pitch = 1;
+
+    utterance.onend   = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  };
+
+  return (
+    <div style={actionStyles.bar}>
+      {/* Copy */}
+      <button
+        style={{
+          ...actionStyles.btn,
+          ...(isStreaming ? actionStyles.btnDisabled : {}),
+          ...(copied ? actionStyles.btnCopied : {}),
+        }}
+        onClick={handleCopy}
+        disabled={isStreaming}
+        title="Copy"
+      >
+        {copied ? "✓" : "📋"}
+      </button>
+
+      {/* TTS */}
+      <button
+        style={{
+          ...actionStyles.btn,
+          ...(isStreaming ? actionStyles.btnDisabled : {}),
+          ...(speaking   ? actionStyles.btnSpeaking : {}),
+        }}
+        onClick={handleTTS}
+        disabled={isStreaming}
+        title={speaking ? "Stop" : "Text-to-Speech"}
+      >
+        {speaking ? "⏹" : "🔊"}
+      </button>
+    </div>
+  );
+}
+
+const actionStyles = {
+  bar: {
+    display: "flex",
+    gap: "4px",
+    marginTop: "5px",
+    paddingLeft: "2px",
+  },
+  btn: {
+    background: "transparent",
+    border: "1px solid transparent",
+    borderRadius: "6px",
+    padding: "3px 7px",
+    fontSize: "12px",
+    cursor: "pointer",
+    color: "#4b5563",
+    transition: "all 0.15s",
+    opacity: 0.6,
+    lineHeight: 1,
+  },
+  btnDisabled: {
+    opacity: 0.25,
+    cursor: "not-allowed",
+  },
+  btnCopied: {
+    color: "#7ecf7e",
+    border: "1px solid #2d5a2d",
+    opacity: 1,
+  },
+  btnSpeaking: {
+    color: "#e8c97a",
+    border: "1px solid #4a3d10",
+    opacity: 1,
+    animation: "pulse 1.5s ease-in-out infinite",
+  },
+};
+
+// ── Main ChatWindow ──────────────────────────────────────────────────
 export default function ChatWindow({ messages, isLoading, streamingText }) {
   const bottomRef = useRef();
 
-  // Auto-scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingText]);
@@ -14,53 +123,78 @@ export default function ChatWindow({ messages, isLoading, streamingText }) {
         <div style={styles.emptyChat}>
           <p style={styles.emptyChatIcon}>💬</p>
           <p style={styles.emptyChatTitle}>Sawaal pucho apni book se</p>
-          <p style={styles.emptyChatSub}>LLaMA 2 tumhare book ke content se jawab dega</p>
+          <p style={styles.emptyChatSub}>
+            AI tumhare book ke content se jawab dega
+          </p>
         </div>
       )}
 
-      {messages.map((msg, i) => (
-        <div
-          key={i}
-          style={{
-            ...styles.msgRow,
-            ...(msg.role === "user" ? styles.msgRowUser : styles.msgRowBot),
-          }}
-        >
-          {msg.role === "assistant" && (
-            <div style={styles.avatar}>🤖</div>
-          )}
-
+      {messages.map((msg, i) => {
+        const isUser = msg.role === "user";
+        return (
           <div
+            key={i}
             style={{
-              ...styles.bubble,
-              ...(msg.role === "user" ? styles.bubbleUser : styles.bubbleBot),
+              ...styles.msgRow,
+              ...(isUser ? styles.msgRowUser : styles.msgRowBot),
             }}
           >
-            <p style={styles.bubbleText}>{msg.content}</p>
+            {!isUser && <div style={styles.avatar}>🤖</div>}
+
+            <div style={styles.bubbleWrap}>
+              <div
+                style={{
+                  ...styles.bubble,
+                  ...(isUser ? styles.bubbleUser : styles.bubbleBot),
+                }}
+              >
+                <p
+                  style={{
+                    ...styles.bubbleText,
+                    ...(isUser
+                      ? styles.bubbleTextUser
+                      : styles.bubbleTextBot),
+                  }}
+                >
+                  {msg.content}
+                </p>
+              </div>
+
+              {/* Actions only for AI messages */}
+              {!isUser && (
+                <MessageActions content={msg.content} isStreaming={false} />
+              )}
+            </div>
+
+            {isUser && <div style={styles.avatar}>👤</div>}
           </div>
+        );
+      })}
 
-          {msg.role === "user" && (
-            <div style={styles.avatar}>👤</div>
-          )}
-        </div>
-      ))}
-
-      {/* Streaming bubble — real-time typing */}
+      {/* Streaming bubble */}
       {(isLoading || streamingText) && (
         <div style={{ ...styles.msgRow, ...styles.msgRowBot }}>
           <div style={styles.avatar}>🤖</div>
-          <div style={{ ...styles.bubble, ...styles.bubbleBot }}>
-            {streamingText ? (
-              <p style={styles.bubbleText}>
-                {streamingText}
-                <span style={styles.cursor}>▋</span>
-              </p>
-            ) : (
-              <div style={styles.thinkingDots}>
-                <span style={{ ...styles.dot, animationDelay: "0ms"   }} />
-                <span style={{ ...styles.dot, animationDelay: "180ms" }} />
-                <span style={{ ...styles.dot, animationDelay: "360ms" }} />
-              </div>
+
+          <div style={styles.bubbleWrap}>
+            <div style={{ ...styles.bubble, ...styles.bubbleBot }}>
+              {streamingText ? (
+                <p style={{ ...styles.bubbleText, ...styles.bubbleTextBot }}>
+                  {streamingText}
+                  <span style={styles.cursor}>▋</span>
+                </p>
+              ) : (
+                <div style={styles.thinkingDots}>
+                  <span style={{ ...styles.dot, animationDelay: "0ms"   }} />
+                  <span style={{ ...styles.dot, animationDelay: "180ms" }} />
+                  <span style={{ ...styles.dot, animationDelay: "360ms" }} />
+                </div>
+              )}
+            </div>
+
+            {/* Actions disabled while streaming */}
+            {streamingText && (
+              <MessageActions content={streamingText} isStreaming={true} />
             )}
           </div>
         </div>
@@ -80,6 +214,8 @@ const styles = {
     flexDirection: "column",
     gap: "1rem",
   },
+
+  // ── Empty state ──
   emptyChat: {
     flex: 1,
     display: "flex",
@@ -103,6 +239,8 @@ const styles = {
     color: "#4b5563",
     fontFamily: "'DM Sans', sans-serif",
   },
+
+  // ── Message rows ──
   msgRow: {
     display: "flex",
     alignItems: "flex-end",
@@ -111,13 +249,22 @@ const styles = {
   },
   msgRowUser: { flexDirection: "row-reverse" },
   msgRowBot:  { flexDirection: "row" },
+
   avatar: {
     fontSize: "20px",
     flexShrink: 0,
     marginBottom: "2px",
   },
-  bubble: {
+
+  // ── Bubble wrap (bubble + actions together) ──
+  bubbleWrap: {
+    display: "flex",
+    flexDirection: "column",
     maxWidth: "72%",
+  },
+
+  // ── Bubbles ──
+  bubble: {
     borderRadius: "16px",
     padding: "12px 16px",
     lineHeight: "1.6",
@@ -125,26 +272,38 @@ const styles = {
   bubbleUser: {
     background: "#e8c97a",
     borderBottomRightRadius: "4px",
+    alignSelf: "flex-end",
   },
   bubbleBot: {
-    background: "#161922",
-    border: "1px solid #252a38",
+    background: "#1e2433",
+    border: "1px solid #2d3449",
     borderBottomLeftRadius: "4px",
   },
+
+  // ── Text colors (FIXED) ──
   bubbleText: {
     fontSize: "14px",
     fontFamily: "'DM Sans', sans-serif",
-    color: "#0f1117",
     margin: 0,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
   },
+  bubbleTextUser: {
+    color: "#0f0d06",   // dark text on gold background
+  },
+  bubbleTextBot: {
+    color: "#e0d5bb",   // cream/white — clearly readable on dark bg
+  },
+
+  // ── Streaming cursor ──
   cursor: {
     display: "inline-block",
     color: "#e8c97a",
     animation: "blink 1s step-end infinite",
     marginLeft: "1px",
   },
+
+  // ── Thinking dots ──
   thinkingDots: {
     display: "flex",
     gap: "5px",

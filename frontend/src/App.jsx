@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import UploadPage from "./pages/UploadPage";
-import ChatPage   from "./pages/ChatPage";
+import ChatPage         from "./pages/ChatPage";
+import KeyManagementPage from "./pages/KeyManagementPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/"      element={<UploadPage />} />
+        <Route path="/"      element={<ChatPage />} />
         <Route path="/chat"  element={<ChatPage />} />
+        <Route path="/keys"  element={<KeyManagementPage />} />
         <Route path="*"      element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -12,6 +12,14 @@ body { background: #0f1117; color: #f0e6c8; -webkit-font-smoothing: antialiased;
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
@@ -25,8 +33,20 @@ body { background: #0f1117; color: #f0e6c8; -webkit-font-smoothing: antialiased;
   to   { transform: rotate(360deg); }
 }
 
+/* Copy button — copied flash */
+@keyframes copyFlash {
+  0%   { background: transparent; }
+  30%  { background: #1a2e1a; }
+  100% { background: transparent; }
+}
+
+/* TTS speaking — pulse glow */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 201, 122, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(232, 201, 122, 0.2); }
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #0f1117; }
 ::-webkit-scrollbar-thumb { background: #252a38; border-radius: 10px; }
 textarea::placeholder { color: #374151; }
-
