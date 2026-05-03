@@ -4,11 +4,19 @@ import axios from "axios";
 const API = "http://localhost:8000";
 
 export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
-  const [books, setBooks]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [confirmId, setConfirmId] = useState(null);
-  const [deleting, setDeleting]   = useState(null);
-  const [collapsed, setCollapsed] = useState(false);
+  const [books, setBooks]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [confirmId, setConfirmId]   = useState(null);
+  const [deleting, setDeleting]     = useState(null);
+  const [collapsed, setCollapsed]   = useState(false);
+  const [reindexing, setReindexing] = useState(null);
+  const [toast, setToast]           = useState(null);
+
+  // ── Toast helper ─────────────────────────────────────────────
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // ── Fetch books ────────────────────────────────────────────────
   const fetchBooks = async () => {
@@ -39,6 +47,27 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
     }
   };
 
+  // ── Reindex book ───────────────────────────────────────────────
+  const handleReindex = async (e, bookId) => {
+    e.stopPropagation();
+    setReindexing(bookId);
+    try {
+      const res = await axios.post(`${API}/index/${bookId}`);
+      // Update indexed status locally
+      setBooks((prev) =>
+        prev.map((b) =>
+          b.book_id === bookId ? { ...b, indexed: true } : b
+        )
+      );
+      showToast(`✓ ${res.data.chunks_stored} chunks index ho gaye!`, "success");
+    } catch (err) {
+      const detail = err.response?.data?.detail || "Reindex fail hua. Dobara try karo.";
+      showToast(`✕ ${detail}`, "error");
+    } finally {
+      setReindexing(null);
+    }
+  };
+
   if (collapsed) {
     return (
       <aside style={styles.sidebarCollapsed}>
@@ -64,6 +93,16 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
 
   return (
     <aside style={styles.sidebar}>
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div style={{
+          ...styles.toast,
+          ...(toast.type === "error" ? styles.toastError : styles.toastSuccess),
+        }}>
+          {toast.msg}
+        </div>
+      )}
 
       {/* ── Header ── */}
       <div style={styles.sidebarHeader}>
@@ -98,9 +137,10 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
         )}
 
         {!loading && books.map((book) => {
-          const isActive  = selectedBook?.book_id === book.book_id;
-          const isConfirm = confirmId === book.book_id;
-          const isDeleting = deleting === book.book_id;
+          const isActive    = selectedBook?.book_id === book.book_id;
+          const isConfirm   = confirmId === book.book_id;
+          const isDeleting  = deleting === book.book_id;
+          const isReindexing = reindexing === book.book_id;
 
           return (
             <div
@@ -129,10 +169,29 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
                     {book.pages} pages · {book.chunk_count} chunks
                     {book.indexed
                       ? <span style={styles.indexedDot}> ✓ indexed</span>
-                      : <span style={styles.pendingDot}> ⏳ indexing</span>}
+                      : <span style={styles.pendingDot}> ✕ not indexed</span>}
                   </p>
                 </div>
               </button>
+
+              {/* ── Reindex btn — sirf tab dikhao jab indexed nahi ── */}
+              {!book.indexed && !isConfirm && (
+                <button
+                  style={{
+                    ...styles.reindexBtn,
+                    ...(isReindexing ? styles.reindexBtnLoading : {}),
+                  }}
+                  onClick={(e) => handleReindex(e, book.book_id)}
+                  disabled={isReindexing}
+                  title="Index karo taake sawaal pooch sako"
+                >
+                  {isReindexing ? (
+                    <span style={styles.reindexSpinner}>⟳</span>
+                  ) : (
+                    "⟳ Index"
+                  )}
+                </button>
+              )}
 
               {/* ── Delete / Confirm ── */}
               {!isConfirm ? (
@@ -186,6 +245,7 @@ const styles = {
     flexDirection: "column",
     flexShrink: 0,
     overflowY: "auto",
+    position: "relative",
   },
   sidebarCollapsed: {
     width: "52px",
@@ -199,6 +259,29 @@ const styles = {
     padding: "1rem 0",
     gap: "10px",
     flexShrink: 0,
+  },
+  toast: {
+    position: "absolute",
+    bottom: "72px",
+    left: "10px",
+    right: "10px",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    fontSize: "12px",
+    fontFamily: "'DM Sans', sans-serif",
+    zIndex: 10,
+    animation: "slideIn 0.3s ease",
+    lineHeight: "1.4",
+  },
+  toastSuccess: {
+    background: "#1a2e1a",
+    color: "#7ecf7e",
+    border: "1px solid #2d5a2d",
+  },
+  toastError: {
+    background: "#2e1a1a",
+    color: "#cf7e7e",
+    border: "1px solid #5a2d2d",
   },
   collapsedDot: {
     width: "10px",
@@ -334,8 +417,35 @@ const styles = {
     fontFamily: "'DM Sans', sans-serif",
     margin: 0,
   },
-  indexedDot: { color: "#4a7c4a" },
-  pendingDot: { color: "#7a6a3a" },
+  indexedDot:  { color: "#4a7c4a" },
+  pendingDot:  { color: "#cf7e7e" },
+
+  // ── Reindex button ──
+  reindexBtn: {
+    width: "calc(100% - 20px)",
+    margin: "0 10px 4px",
+    padding: "6px 10px",
+    background: "#1a1f30",
+    border: "1px solid #2d3a5a",
+    color: "#7a9ecf",
+    borderRadius: "8px",
+    fontSize: "11px",
+    fontFamily: "'DM Sans', sans-serif",
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "all 0.2s",
+    letterSpacing: "0.03em",
+    fontWeight: "500",
+  },
+  reindexBtnLoading: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  reindexSpinner: {
+    display: "inline-block",
+    animation: "spin 1s linear infinite",
+  },
+
   deleteBtn: {
     width: "100%",
     background: "transparent",

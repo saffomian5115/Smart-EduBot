@@ -1,0 +1,26 @@
+[
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "[ERROR] Timeout ho gaya. Dobara try karo."
+  },
+  {
+    "role": "user",
+    "content": "Hello"
+  },
+  {
+    "role": "assistant",
+    "content": "[ERROR] Timeout ho gaya. Dobara try karo."
+  },
+  {
+    "role": "user",
+    "content": "hi"
+  },
+  {
+    "role": "assistant",
+    "content": "Hi there! I'd be happy to help you with your question. Could you please provide more context or clarify what you are asking about? The excerpts you provided are from a book on database systems, and they cover various concepts related to transactional and concurrency control techniques. However, without more information, it's difficult for me to give a specific answer to your question. Please feel free to ask any specific question you have in mind, and I'll do my best to help!"
+  }
+]

@@ -8,6 +8,10 @@ echo    SMART EDUBOT — Starting Up...
 echo  =======================================
 echo.
 
+echo [*] Ollama server start ho raha hai...
+start "Ollama Server" cmd /k "ollama serve"
+timeout /t 5 /nobreak >nul
+
 :: ─── Step 1: venv check ───────────────────────────────────────────
 if exist "venv\Scripts\activate.bat" (
     echo [OK] Virtual environment mili — activate ho rahi hai...

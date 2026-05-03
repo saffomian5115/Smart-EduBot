@@ -13,7 +13,7 @@ export default function ChatPage() {
   const [messages, setMessages]         = useState([]);
   const [isLoading, setIsLoading]       = useState(false);
   const [streamingText, setStreamingText] = useState("");
-  const [ollamaOk, setOllamaOk]         = useState(true);
+  const [ollamaOk, setOllamaOk] = useState(true);
 
   // ── Auto-select book from upload redirect ────────────────────────
   useEffect(() => {

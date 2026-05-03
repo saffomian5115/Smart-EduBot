@@ -38,9 +38,9 @@ BACKEND MODULE 3 — RAG Query Engine
 ================================================================================
 BACKEND MODULE 4 — Book Management API
 ================================================================================
-[ ] Saved books list endpoint: GET /books
-[ ] Book delete endpoint: DELETE /books/{book_id}
-[ ] Chat history save/load karo per book (history.json)
+[✔️] Saved books list endpoint: GET /books
+[✔️] Book delete endpoint: DELETE /books/{book_id}
+[✔️] Chat history save/load karo per book (history.json)
 
 ================================================================================
 FRONTEND MODULE 5 — Upload Page (React)
