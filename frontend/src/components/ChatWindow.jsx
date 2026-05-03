@@ -1,8 +1,31 @@
 import { useEffect, useRef, useState } from "react";
 
+const TYPING_MSG = "Llama2 model is totally free and work offline perfectly, but it's need a high power device jiske pass kam se kam 4GB ka graphic card ho Nvidia ka — nai to iska response slow ho jata hai or ye kam se kam 3 mint leta hai aik response dene me......";
+
+function TypingPlaceholder() {
+  const [displayed, setDisplayed] = useState("");
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (index >= TYPING_MSG.length) return;
+    const timeout = setTimeout(() => {
+      setDisplayed((prev) => prev + TYPING_MSG[index]);
+      setIndex((prev) => prev + 1);
+    }, 150); // speed — 35ms per character = ~3 minutes for full message
+    return () => clearTimeout(timeout);
+  }, [index]);
+
+  return (
+    <p style={{ fontSize: "13px", color: "#6b7280", fontFamily: "'DM Sans', sans-serif", margin: 0, lineHeight: "1.6" }}>
+      {displayed}
+      <span style={{ display: "inline-block", color: "#e8c97a", animation: "blink 1s step-end infinite", marginLeft: "1px" }}>▋</span>
+    </p>
+  );
+}
+
 // ── MessageActions: Copy + TTS buttons ──────────────────────────────
 function MessageActions({ content, isStreaming }) {
-  const [copied, setCopied]     = useState(false);
+  const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
   const handleCopy = async () => {
@@ -30,10 +53,10 @@ function MessageActions({ content, isStreaming }) {
     // Simple language detect — Urdu chars
     const urduChars = /[\u0600-\u06FF]/;
     utterance.lang = urduChars.test(content) ? "ur-PK" : "en-US";
-    utterance.rate  = 0.95;
+    utterance.rate = 0.95;
     utterance.pitch = 1;
 
-    utterance.onend   = () => setSpeaking(false);
+    utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
 
     window.speechSynthesis.speak(utterance);
@@ -61,7 +84,7 @@ function MessageActions({ content, isStreaming }) {
         style={{
           ...actionStyles.btn,
           ...(isStreaming ? actionStyles.btnDisabled : {}),
-          ...(speaking   ? actionStyles.btnSpeaking : {}),
+          ...(speaking ? actionStyles.btnSpeaking : {}),
         }}
         onClick={handleTTS}
         disabled={isStreaming}
@@ -151,9 +174,7 @@ export default function ChatWindow({ messages, isLoading, streamingText }) {
                 <p
                   style={{
                     ...styles.bubbleText,
-                    ...(isUser
-                      ? styles.bubbleTextUser
-                      : styles.bubbleTextBot),
+                    ...(isUser ? styles.bubbleTextUser : styles.bubbleTextBot),
                   }}
                 >
                   {msg.content}
@@ -184,11 +205,7 @@ export default function ChatWindow({ messages, isLoading, streamingText }) {
                   <span style={styles.cursor}>▋</span>
                 </p>
               ) : (
-                <div style={styles.thinkingDots}>
-                  <span style={{ ...styles.dot, animationDelay: "0ms"   }} />
-                  <span style={{ ...styles.dot, animationDelay: "180ms" }} />
-                  <span style={{ ...styles.dot, animationDelay: "360ms" }} />
-                </div>
+                <TypingPlaceholder />
               )}
             </div>
 
@@ -226,7 +243,7 @@ const styles = {
     textAlign: "center",
     padding: "3rem 2rem",
   },
-  emptyChatIcon:  { fontSize: "48px", marginBottom: "1rem" },
+  emptyChatIcon: { fontSize: "48px", marginBottom: "1rem" },
   emptyChatTitle: {
     fontSize: "20px",
     color: "#c8bfa0",
@@ -248,7 +265,7 @@ const styles = {
     animation: "fadeUp 0.25s ease",
   },
   msgRowUser: { flexDirection: "row-reverse" },
-  msgRowBot:  { flexDirection: "row" },
+  msgRowBot: { flexDirection: "row" },
 
   avatar: {
     fontSize: "20px",
@@ -289,10 +306,10 @@ const styles = {
     wordBreak: "break-word",
   },
   bubbleTextUser: {
-    color: "#0f0d06",   // dark text on gold background
+    color: "#0f0d06", // dark text on gold background
   },
   bubbleTextBot: {
-    color: "#e0d5bb",   // cream/white — clearly readable on dark bg
+    color: "#e0d5bb", // cream/white — clearly readable on dark bg
   },
 
   // ── Streaming cursor ──
