@@ -5,3 +5,4 @@ sentence-transformers
 chromadb
 python-multipart
 httpx
+google-generativeai

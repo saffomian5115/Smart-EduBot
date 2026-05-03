@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from typing import Optional
 import json
 import uuid
 import fitz  # PyMuPDF
@@ -9,6 +10,7 @@ from chunker import chunk_text
 from vector_store import index_book, delete_book_index, get_collection_info, retrieve_chunks
 from prompt_builder import build_prompt, build_prompt_urdu, detect_language
 from llm import ask_llm, ask_llm_stream, check_ollama
+from gemini import ask_gemini, ask_gemini_stream, validate_gemini_key
 from pathlib import Path
 
 app = FastAPI(title="Smart EduBot API")
@@ -22,16 +24,20 @@ app.add_middleware(
 )
 
 # ─── Storage ─────────────────────────────────────────────────────────
-STORAGE_DIR  = Path("storage")
-BOOKS_FILE   = STORAGE_DIR / "books.json"
-CHUNKS_DIR   = STORAGE_DIR / "chunks"
-HISTORY_DIR  = STORAGE_DIR / "history"
+STORAGE_DIR   = Path("storage")
+BOOKS_FILE    = STORAGE_DIR / "books.json"
+CHUNKS_DIR    = STORAGE_DIR / "chunks"
+HISTORY_DIR   = STORAGE_DIR / "history"
+SETTINGS_FILE = STORAGE_DIR / "settings.json"
 
 for d in [STORAGE_DIR, CHUNKS_DIR, HISTORY_DIR]:
     d.mkdir(exist_ok=True)
 
 if not BOOKS_FILE.exists():
     BOOKS_FILE.write_text(json.dumps([]))
+
+if not SETTINGS_FILE.exists():
+    SETTINGS_FILE.write_text(json.dumps({"gemini_api_key": ""}))
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────
@@ -49,12 +55,30 @@ def save_history(book_id: str, history: list):
     f = HISTORY_DIR / f"{book_id}.json"
     f.write_text(json.dumps(history, indent=2, ensure_ascii=False))
 
+def load_settings() -> dict:
+    if not SETTINGS_FILE.exists():
+        return {"gemini_api_key": ""}
+    return json.loads(SETTINGS_FILE.read_text())
+
+def save_settings(settings: dict):
+    SETTINGS_FILE.write_text(json.dumps(settings, indent=2, ensure_ascii=False))
+
+def mask_api_key(key: str) -> str:
+    """API key ko mask karo — sirf last 4 chars dikhao."""
+    if not key or len(key) < 8:
+        return ""
+    return f"AIza{'*' * (len(key) - 8)}{key[-4:]}"
+
 
 # ─── Request schemas ──────────────────────────────────────────────────
 class AskRequest(BaseModel):
     book_id:  str
     question: str
     stream:   bool = False
+    model:    str  = "llama2"   # "llama2" | "gemini"
+
+class SaveKeyRequest(BaseModel):
+    key: str
 
 
 # ─── Root ─────────────────────────────────────────────────────────────
@@ -67,6 +91,52 @@ def root():
 @app.get("/health/ollama")
 async def ollama_health():
     return await check_ollama()
+
+
+# ─── GET /settings/api-key ────────────────────────────────────────────
+@app.get("/settings/api-key")
+def get_api_key():
+    """Masked Gemini API key return karo."""
+    settings = load_settings()
+    raw_key  = settings.get("gemini_api_key", "")
+    return {
+        "has_key":    bool(raw_key),
+        "masked_key": mask_api_key(raw_key) if raw_key else "",
+    }
+
+
+# ─── POST /settings/api-key ───────────────────────────────────────────
+@app.post("/settings/api-key")
+async def save_api_key(req: SaveKeyRequest):
+    """Gemini API key validate karke save karo."""
+    key = req.key.strip()
+
+    if not key:
+        raise HTTPException(status_code=400, detail="API key empty nahi ho sakti.")
+
+    # Key validate karo Gemini pe test call se
+    result = await validate_gemini_key(key)
+    if not result["valid"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+
+    settings = load_settings()
+    settings["gemini_api_key"] = key
+    save_settings(settings)
+
+    return {
+        "message":    "API key save ho gayi!",
+        "masked_key": mask_api_key(key),
+    }
+
+
+# ─── DELETE /settings/api-key ─────────────────────────────────────────
+@app.delete("/settings/api-key")
+def delete_api_key():
+    """Gemini API key delete karo."""
+    settings = load_settings()
+    settings["gemini_api_key"] = ""
+    save_settings(settings)
+    return {"message": "API key delete ho gayi."}
 
 
 # ─── POST /upload-pdf ─────────────────────────────────────────────────
@@ -87,7 +157,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=422, detail="PDF corrupt ya invalid hai.")
 
-    full_text = ""
+    full_text  = ""
     page_count = len(doc)
     for page in doc:
         full_text += page.get_text()
@@ -136,14 +206,14 @@ async def upload_pdf(file: UploadFile = File(...)):
 @app.post("/ask")
 async def ask(req: AskRequest):
     # Book exist karti hai?
-    books  = load_books()
-    book   = next((b for b in books if b["book_id"] == req.book_id), None)
+    books = load_books()
+    book  = next((b for b in books if b["book_id"] == req.book_id), None)
     if not book:
         raise HTTPException(status_code=404, detail="Book nahi mili.")
     if not book.get("indexed"):
         raise HTTPException(status_code=400, detail="Book abhi index nahi hui. Thodi der mein try karo.")
 
-    # Top-5 relevant chunks retrieve karo
+    # Top-3 relevant chunks retrieve karo
     chunks = retrieve_chunks(req.book_id, req.question, top_k=3)
     if not chunks:
         raise HTTPException(status_code=404, detail="Koi relevant content nahi mila.")
@@ -152,16 +222,34 @@ async def ask(req: AskRequest):
 
     # Language detect karo aur prompt banao
     lang   = detect_language(req.question)
-    prompt = build_prompt_urdu(chunk_texts, req.question) if lang == 'urdu' \
+    prompt = build_prompt_urdu(chunk_texts, req.question) if lang == "urdu" \
              else build_prompt(chunk_texts, req.question)
+
+    # ── Model routing ─────────────────────────────────────────────────
+    use_gemini = req.model == "gemini"
+
+    if use_gemini:
+        settings = load_settings()
+        api_key  = settings.get("gemini_api_key", "")
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Gemini API key configured nahi hai. Key Management se pehle key add karo."
+            )
 
     # ── Streaming response ────────────────────────────────────────────
     if req.stream:
         async def token_generator():
             full_answer = ""
-            async for token in ask_llm_stream(prompt):
-                full_answer += token
-                yield token
+
+            if use_gemini:
+                async for token in ask_gemini_stream(prompt, api_key):
+                    full_answer += token
+                    yield token
+            else:
+                async for token in ask_llm_stream(prompt):
+                    full_answer += token
+                    yield token
 
             # History save karo
             history = load_history(req.book_id)
@@ -171,19 +259,23 @@ async def ask(req: AskRequest):
 
         return StreamingResponse(token_generator(), media_type="text/plain")
 
-    # ── Normal response ───────────────────────────────────────────────
-    answer = await ask_llm(prompt)
+    # ── Normal (non-streaming) response ──────────────────────────────
+    if use_gemini:
+        answer = await ask_gemini(prompt, api_key)
+    else:
+        answer = await ask_llm(prompt)
 
     history = load_history(req.book_id)
-    history.append({"role": "user",     "content": req.question})
-    history.append({"role": "assistant","content": answer})
+    history.append({"role": "user",      "content": req.question})
+    history.append({"role": "assistant", "content": answer})
     save_history(req.book_id, history)
 
     return {
-        "answer":   answer,
-        "book_id":  req.book_id,
+        "answer":      answer,
+        "book_id":     req.book_id,
         "chunks_used": len(chunks),
-        "language": lang,
+        "language":    lang,
+        "model":       req.model,
     }
 
 

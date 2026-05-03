@@ -8,16 +8,16 @@ CHANGE 1 — MODEL SELECTOR (Offline: Ollama/LLaMA2 | Online: Gemini)
 ================================================================================
 
 BACKEND:
-[ ] backend/gemini.py banao
+[✔️] backend/gemini.py banao
     - Google Generative AI (google-generativeai) library use karo
     - ask_gemini(prompt, api_key) async function
     - ask_gemini_stream(prompt, api_key) async generator function
     - Error handling: invalid key, quota exceeded, network error
 
-[ ] backend/requirements.txt update karo
+[✔️] backend/requirements.txt update karo
     - google-generativeai add karo
 
-[ ] backend/main.py update karo
+[✔️] backend/main.py update karo
     - AskRequest schema mein "model" field add karo
       (values: "llama2" | "gemini", default: "llama2")
     - POST /ask endpoint: model field check karo
@@ -27,17 +27,17 @@ BACKEND:
     - POST /settings/api-key endpoint: key save karo
     - DELETE /settings/api-key endpoint: key delete karo
 
-[ ] backend/storage/ mein settings.json banao (api keys store karne ke liye)
+[✔️] backend/storage/ mein settings.json banao (api keys store karne ke liye)
     Format: { "gemini_api_key": "AIza..." }
 
 FRONTEND:
-[ ] frontend/src/components/ModelSelector.jsx banao
+[✔️] frontend/src/components/ModelSelector.jsx banao
     - Dropdown ya toggle: "🦙 LLaMA 2 (Offline)" | "✨ Gemini (Online)"
     - Gemini select karne pe: check karo key saved hai ya nahi
     - Key nahi hai to: warning show karo "Key Management se API key add karo"
     - Selected model ko localStorage mein save karo (persistence ke liye)
 
-[ ] frontend/src/pages/ChatPage.jsx update karo
+[✔️] frontend/src/pages/ChatPage.jsx update karo
     - ModelSelector component add karo top bar mein (topBar ke andar)
     - selectedModel state add karo
     - handleSend() mein model field POST /ask ke body mein bhejo
@@ -48,7 +48,7 @@ CHANGE 2 — INLINE BOOK UPLOAD (Chat page pe hi, alag page nahi)
 ================================================================================
 
 FRONTEND:
-[ ] frontend/src/components/UploadModal.jsx banao
+[✔️] frontend/src/components/UploadModal.jsx banao
     - Modal/drawer component (overlay style)
     - Existing UploadPage.jsx ka sara upload logic yahan move karo:
       * Drag-and-drop zone
@@ -59,12 +59,12 @@ FRONTEND:
     - Upload success hone pe: modal band ho, nayi book auto-select ho
     - Close button (X) upar right corner mein
 
-[ ] frontend/src/components/Sidebar.jsx update karo
+[✔️] frontend/src/components/Sidebar.jsx update karo
     - "+ New Book Upload" link (jo abhi <a href="/"> hai) ko button banao
     - onClick: UploadModal open karo (prop ya context se)
     - Modal close hone pe book list refresh karo (fetchBooks() call)
 
-[ ] frontend/src/pages/ChatPage.jsx update karo
+[✔️] frontend/src/pages/ChatPage.jsx update karo
     - UploadModal state: showUploadModal (true/false)
     - Sidebar ko onUploadClick prop pass karo
     - UploadModal component render karo (conditional)
@@ -80,13 +80,13 @@ CHANGE 3 — KEY MANAGEMENT PAGE + SIDEBAR BUTTON
 ================================================================================
 
 BACKEND: (Change 1 mein already cover hua)
-[ ] GET /settings/api-key — masked key return karo (AIza****last4)
-[ ] POST /settings/api-key — { "key": "AIza..." } body, validate & save
-[ ] DELETE /settings/api-key — key delete karo settings.json se
-[ ] Key validation: Gemini API ko test call karo before saving
+[✔️] GET /settings/api-key — masked key return karo (AIza****last4)
+[✔️] POST /settings/api-key — { "key": "AIza..." } body, validate & save
+[✔️] DELETE /settings/api-key — key delete karo settings.json se
+[✔️] Key validation: Gemini API ko test call karo before saving
 
 FRONTEND:
-[ ] frontend/src/pages/KeyManagementPage.jsx banao
+[✔️] frontend/src/pages/KeyManagementPage.jsx banao
     - Page layout: dark theme, same style as rest of app
     - "Gemini API Key" section:
       * Current key status: "Key saved ✓" ya "No key saved"
@@ -102,7 +102,7 @@ FRONTEND:
 [ ] frontend/src/App.jsx update karo
     - /keys route add karo => <KeyManagementPage />
 
-[ ] frontend/src/components/Sidebar.jsx update karo
+[✔️] frontend/src/components/Sidebar.jsx update karo
     - Sidebar footer mein "🔑 Key Management" button add karo
     - Position: bilkul neeche, sidebarFooter ke andar
     - onClick: navigate("/keys") ya <a href="/keys">

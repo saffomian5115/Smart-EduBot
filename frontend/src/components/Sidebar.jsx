@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API = "http://localhost:8000";
 
-export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
+export default function Sidebar({
+  selectedBook,
+  onSelectBook,
+  onBookDeleted,
+  onUploadClick,   // ← NEW: modal open karne ke liye
+  refreshKey,      // ← NEW: books list refresh trigger
+}) {
+  const navigate = useNavigate();
+
   const [books, setBooks]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [confirmId, setConfirmId]   = useState(null);
@@ -12,13 +21,13 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
   const [reindexing, setReindexing] = useState(null);
   const [toast, setToast]           = useState(null);
 
-  // ── Toast helper ─────────────────────────────────────────────
+  // ── Toast helper ─────────────────────────────────────────────────
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  // ── Fetch books ────────────────────────────────────────────────
+  // ── Fetch books ──────────────────────────────────────────────────
   const fetchBooks = async () => {
     try {
       const res = await axios.get(`${API}/books`);
@@ -30,9 +39,15 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
     }
   };
 
+  // Fetch on mount
   useEffect(() => { fetchBooks(); }, []);
 
-  // ── Delete book ────────────────────────────────────────────────
+  // Re-fetch whenever parent triggers a refresh (after upload)
+  useEffect(() => {
+    if (refreshKey > 0) fetchBooks();
+  }, [refreshKey]);
+
+  // ── Delete book ──────────────────────────────────────────────────
   const handleDelete = async (bookId) => {
     setDeleting(bookId);
     try {
@@ -47,33 +62,38 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
     }
   };
 
-  // ── Reindex book ───────────────────────────────────────────────
+  // ── Reindex book ─────────────────────────────────────────────────
   const handleReindex = async (e, bookId) => {
     e.stopPropagation();
     setReindexing(bookId);
     try {
       const res = await axios.post(`${API}/index/${bookId}`);
-      // Update indexed status locally
       setBooks((prev) =>
-        prev.map((b) =>
-          b.book_id === bookId ? { ...b, indexed: true } : b
-        )
+        prev.map((b) => b.book_id === bookId ? { ...b, indexed: true } : b)
       );
       showToast(`✓ ${res.data.chunks_stored} chunks index ho gaye!`, "success");
     } catch (err) {
-      const detail = err.response?.data?.detail || "Reindex fail hua. Dobara try karo.";
+      const detail = err.response?.data?.detail || "Reindex fail hua.";
       showToast(`✕ ${detail}`, "error");
     } finally {
       setReindexing(null);
     }
   };
 
+  // ── Collapsed sidebar ────────────────────────────────────────────
   if (collapsed) {
     return (
       <aside style={styles.sidebarCollapsed}>
-        <button style={styles.collapseBtn} onClick={() => setCollapsed(false)} title="Sidebar kholein">
+        {/* Expand button */}
+        <button
+          style={styles.collapseBtn}
+          onClick={() => setCollapsed(false)}
+          title="Sidebar kholein"
+        >
           ▶
         </button>
+
+        {/* Book dots */}
         <div style={styles.collapsedBooks}>
           {books.map((b) => (
             <button
@@ -87,10 +107,32 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
             />
           ))}
         </div>
+
+        {/* Collapsed footer icons */}
+        <div style={styles.collapsedFooter}>
+          {/* Upload icon */}
+          <button
+            style={styles.collapsedIconBtn}
+            onClick={onUploadClick}
+            title="New Book Upload"
+          >
+            +
+          </button>
+
+          {/* Key management icon */}
+          <button
+            style={styles.collapsedIconBtn}
+            onClick={() => navigate("/keys")}
+            title="Key Management"
+          >
+            🔑
+          </button>
+        </div>
       </aside>
     );
   }
 
+  // ── Expanded sidebar ─────────────────────────────────────────────
   return (
     <aside style={styles.sidebar}>
 
@@ -108,17 +150,23 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
       <div style={styles.sidebarHeader}>
         <div>
           <p style={styles.sidebarLabel}>MY LIBRARY</p>
-          <p style={styles.bookCount}>{books.length} book{books.length !== 1 ? "s" : ""}</p>
+          <p style={styles.bookCount}>
+            {books.length} book{books.length !== 1 ? "s" : ""}
+          </p>
         </div>
-        <button style={styles.collapseBtn} onClick={() => setCollapsed(true)} title="Sidebar band karein">
+        <button
+          style={styles.collapseBtn}
+          onClick={() => setCollapsed(true)}
+          title="Sidebar band karein"
+        >
           ◀
         </button>
       </div>
 
-      {/* ── Upload button ── */}
-      <a href="/" style={styles.uploadLink}>
-        <span>+</span> New Book Upload
-      </a>
+      {/* ── Upload button (was <a href="/">, now button → modal) ── */}
+      <button style={styles.uploadBtn} onClick={onUploadClick}>
+        <span style={styles.uploadBtnPlus}>+</span> New Book Upload
+      </button>
 
       {/* ── Book list ── */}
       <div style={styles.bookList}>
@@ -137,9 +185,9 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
         )}
 
         {!loading && books.map((book) => {
-          const isActive    = selectedBook?.book_id === book.book_id;
-          const isConfirm   = confirmId === book.book_id;
-          const isDeleting  = deleting === book.book_id;
+          const isActive     = selectedBook?.book_id === book.book_id;
+          const isConfirm    = confirmId === book.book_id;
+          const isDeleting   = deleting === book.book_id;
           const isReindexing = reindexing === book.book_id;
 
           return (
@@ -150,7 +198,7 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
                 ...(isActive ? styles.bookItemActive : {}),
               }}
             >
-              {/* ── Book row ── */}
+              {/* Book row */}
               <button
                 style={styles.bookBtn}
                 onClick={() => !isConfirm && onSelectBook(book)}
@@ -163,10 +211,12 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
                     ...styles.bookTitle,
                     ...(isActive ? styles.bookTitleActive : {}),
                   }}>
-                    {book.title.length > 28 ? book.title.slice(0, 28) + "…" : book.title}
+                    {book.title.length > 28
+                      ? book.title.slice(0, 28) + "…"
+                      : book.title}
                   </p>
                   <p style={styles.bookMeta}>
-                    {book.pages} pages · {book.chunk_count} chunks
+                    {book.pages}p · {book.chunk_count} chunks
                     {book.indexed
                       ? <span style={styles.indexedDot}> ✓ indexed</span>
                       : <span style={styles.pendingDot}> ✕ not indexed</span>}
@@ -174,7 +224,7 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
                 </div>
               </button>
 
-              {/* ── Reindex btn — sirf tab dikhao jab indexed nahi ── */}
+              {/* Reindex button — only when not indexed */}
               {!book.indexed && !isConfirm && (
                 <button
                   style={{
@@ -185,15 +235,13 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
                   disabled={isReindexing}
                   title="Index karo taake sawaal pooch sako"
                 >
-                  {isReindexing ? (
-                    <span style={styles.reindexSpinner}>⟳</span>
-                  ) : (
-                    "⟳ Index"
-                  )}
+                  {isReindexing
+                    ? <span style={styles.reindexSpinner}>⟳</span>
+                    : "⟳ Index"}
                 </button>
               )}
 
-              {/* ── Delete / Confirm ── */}
+              {/* Delete / confirm */}
               {!isConfirm ? (
                 <button
                   style={styles.deleteBtn}
@@ -227,7 +275,16 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
 
       {/* ── Footer ── */}
       <div style={styles.sidebarFooter}>
-        <p style={styles.footerText}>📖 EduBot</p>
+        <p style={styles.footerBrand}>📖 EduBot</p>
+
+        {/* Key Management button */}
+        <button
+          style={styles.keyMgmtBtn}
+          onClick={() => navigate("/keys")}
+          title="Gemini API key manage karo"
+        >
+          🔑 Key Management
+        </button>
       </div>
     </aside>
   );
@@ -235,6 +292,7 @@ export default function Sidebar({ selectedBook, onSelectBook, onBookDeleted }) {
 
 // ── Styles ──────────────────────────────────────────────────────────
 const styles = {
+  // ── Expanded sidebar ──
   sidebar: {
     width: "270px",
     minWidth: "270px",
@@ -247,6 +305,8 @@ const styles = {
     overflowY: "auto",
     position: "relative",
   },
+
+  // ── Collapsed sidebar ──
   sidebarCollapsed: {
     width: "52px",
     minWidth: "52px",
@@ -260,9 +320,53 @@ const styles = {
     gap: "10px",
     flexShrink: 0,
   },
+  collapsedBooks: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    flex: 1,
+    marginTop: "4px",
+  },
+  collapsedDot: {
+    width: "10px",
+    height: "10px",
+    borderRadius: "50%",
+    background: "#2d3449",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+    transition: "background 0.2s",
+  },
+  collapsedDotActive: {
+    background: "#e8c97a",
+  },
+  collapsedFooter: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "6px",
+    paddingBottom: "4px",
+  },
+  collapsedIconBtn: {
+    background: "transparent",
+    border: "1px solid #1e2333",
+    color: "#4b5563",
+    borderRadius: "8px",
+    width: "32px",
+    height: "32px",
+    cursor: "pointer",
+    fontSize: "14px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "border-color 0.2s, color 0.2s",
+  },
+
+  // ── Toast ──
   toast: {
     position: "absolute",
-    bottom: "72px",
+    bottom: "80px",
     left: "10px",
     right: "10px",
     padding: "10px 14px",
@@ -283,26 +387,8 @@ const styles = {
     color: "#cf7e7e",
     border: "1px solid #5a2d2d",
   },
-  collapsedDot: {
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-    background: "#2d3449",
-    border: "none",
-    cursor: "pointer",
-    padding: 0,
-    transition: "background 0.2s",
-  },
-  collapsedDotActive: {
-    background: "#e8c97a",
-  },
-  collapsedBooks: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "8px",
-    marginTop: "8px",
-  },
+
+  // ── Header ──
   sidebarHeader: {
     padding: "1.5rem 1.2rem 0.8rem",
     display: "flex",
@@ -336,7 +422,9 @@ const styles = {
     justifyContent: "center",
     flexShrink: 0,
   },
-  uploadLink: {
+
+  // ── Upload button (was <a href="/">, now <button> → modal) ──
+  uploadBtn: {
     display: "flex",
     alignItems: "center",
     gap: "8px",
@@ -348,10 +436,18 @@ const styles = {
     color: "#e8c97a",
     fontSize: "13px",
     fontFamily: "'DM Sans', sans-serif",
-    textDecoration: "none",
-    transition: "background 0.2s",
+    cursor: "pointer",
     fontWeight: "500",
+    width: "calc(100% - 2rem)",
+    transition: "background 0.2s",
+    textAlign: "left",
   },
+  uploadBtnPlus: {
+    fontSize: "16px",
+    lineHeight: 1,
+  },
+
+  // ── Book list ──
   bookList: {
     flex: 1,
     overflowY: "auto",
@@ -376,6 +472,8 @@ const styles = {
     color: "#374151",
     fontFamily: "'DM Sans', sans-serif",
   },
+
+  // ── Book item ──
   bookItem: {
     borderRadius: "10px",
     marginBottom: "4px",
@@ -399,7 +497,7 @@ const styles = {
     textAlign: "left",
   },
   bookEmoji: { fontSize: "20px", flexShrink: 0 },
-  bookInfo: { flex: 1, overflow: "hidden" },
+  bookInfo:  { flex: 1, overflow: "hidden" },
   bookTitle: {
     fontSize: "13px",
     color: "#9ca3af",
@@ -417,8 +515,8 @@ const styles = {
     fontFamily: "'DM Sans', sans-serif",
     margin: 0,
   },
-  indexedDot:  { color: "#4a7c4a" },
-  pendingDot:  { color: "#cf7e7e" },
+  indexedDot: { color: "#4a7c4a" },
+  pendingDot: { color: "#cf7e7e" },
 
   // ── Reindex button ──
   reindexBtn: {
@@ -446,6 +544,7 @@ const styles = {
     animation: "spin 1s linear infinite",
   },
 
+  // ── Delete / confirm ──
   deleteBtn: {
     width: "100%",
     background: "transparent",
@@ -489,13 +588,37 @@ const styles = {
     cursor: "pointer",
     fontFamily: "'DM Sans', sans-serif",
   },
+
+  // ── Footer ──
   sidebarFooter: {
-    padding: "1rem 1.2rem",
+    padding: "0.8rem 1.2rem 1rem",
     borderTop: "1px solid #1e2333",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
   },
-  footerText: {
+  footerBrand: {
     fontSize: "13px",
     color: "#374151",
     fontFamily: "'Crimson Pro', Georgia, serif",
+    margin: 0,
+  },
+
+  // ── Key Management button (NEW) ──
+  keyMgmtBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    padding: "8px 12px",
+    background: "transparent",
+    border: "1px solid #1e2333",
+    borderRadius: "9px",
+    color: "#4b5563",
+    fontSize: "12px",
+    fontFamily: "'DM Sans', sans-serif",
+    cursor: "pointer",
+    width: "100%",
+    textAlign: "left",
+    transition: "border-color 0.2s, color 0.2s",
   },
 };
