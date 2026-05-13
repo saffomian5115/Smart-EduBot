@@ -89,4 +89,8 @@ App runs at → `http://localhost:5173`
 ## Notes
 
 - API keys are stored locally in `backend/storage/settings.json` — never sent to any server
+<<<<<<< HEAD
 - Scanned/image PDFs won't work — text-based PDFs only
+=======
+- Scanned/image PDFs won't work — text-based PDFs only
+>>>>>>> edd40b4c255e24efbeb851c4e47627559b59b92a
