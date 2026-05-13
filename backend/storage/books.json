@@ -1,18 +1,3 @@
 [
-  {
-    "book_id": "b45b4865-05f3-4c2a-8989-1889d5689890",
-    "filename": "Recovery Techniques.pdf",
-    "title": "Recovery Techniques",
-    "pages": 4,
-    "chunk_count": 4,
-    "indexed": true
-  },
-  {
-    "book_id": "1e06eee3-12e8-4f23-bbac-7d330079388c",
-    "filename": "Transactional and concurrency techniques.pdf",
-    "title": "Transactional and concurrency techniques",
-    "pages": 5,
-    "chunk_count": 3,
-    "indexed": true
-  }
+ 
 ]

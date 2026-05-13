@@ -1,91 +1,92 @@
 # 📖 Smart EduBot
 
-Apni PDF book upload karo aur seedha sawaal poecho — AI jawab dega.
-
----
+A RAG-based study assistant — upload a PDF book, ask questions, get AI-powered answers.
 
 ## Tech Stack
 
-- **Frontend** — React + Vite
-- **Backend** — FastAPI (Python)
-- **Embeddings** — sentence-transformers (`all-MiniLM-L6-v2`)
-- **Vector DB** — ChromaDB
-- **LLM** — LLaMA 2 via Ollama (local)
+- **Frontend:** React + Vite
+- **Backend:** FastAPI (Python)
+- **LLMs:** LLaMA 2 (local via Ollama) · Gemini (Google AI)
+- **Embeddings:** `all-MiniLM-L6-v2` via Sentence Transformers
+- **Vector DB:** ChromaDB
 
----
-
-## Requirements
+## Prerequisites
 
 - Python 3.10+
 - Node.js 20+
-- [Ollama](https://ollama.com) installed
+- [Ollama](https://ollama.com) (for local LLaMA 2)
 
----
+## Setup
 
-## Installation & Setup
-
-### 1. Ollama setup
-```bash
-ollama pull llama2
-ollama serve
-```
-
-### 2. Backend
+### 1. Clone & install backend
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Windows
-source venv/bin/activate   # Mac/Linux
-source venv/Scripts/activate    #for git batch terminal
-
+# source venv/bin/activate   # Mac/Linux
 
 pip install -r backend/requirements.txt
-cd backend
-uvicorn main:app --reload --port 8000
 ```
 
-### 3. Frontend
+### 2. Install frontend
 ```bash
 cd frontend
 npm install
-npm run dev
 ```
 
-App open ho jaayegi: `http://localhost:5173`
+### 3. Pull LLaMA 2 model
+```bash
+ollama pull llama2
+```
 
-> **Windows shortcut:** Root folder mein `start.bat` double-click karo — sab automatically start ho jaayega.
+## Running
 
----
+**Windows (one command):**
+```bash
+start.bat
+```
 
-## How to Use
+**Manual:**
+```bash
+# Terminal 1 — Ollama
+ollama serve
 
-1. **Upload** — PDF drag-and-drop karo ya click karke select karo
-2. **Index** — Agar book "not indexed" dikhaye to sidebar mein `⟳ Index` button dabaao
-3. **Chat** — Sidebar se book select karo aur sawaal poecho
+# Terminal 2 — Backend
+cd backend && uvicorn main:app --reload --port 8000
 
----
+# Terminal 3 — Frontend
+cd frontend && npm run dev
+```
+
+App runs at → `http://localhost:5173`
+
+## Usage
+
+1. Click **New Book Upload** → drag & drop a PDF
+2. Select the uploaded book from the sidebar
+3. Ask questions in the chat
+4. Switch between **LLaMA 2** (offline) and **Gemini** (online) via the model selector
+
+> For Gemini: go to **Key Management** and add a Google AI Studio API key.
 
 ## Project Structure
 
 ```
 ├── backend/
-│   ├── main.py            # FastAPI endpoints
-│   ├── chunker.py         # Text chunking
-│   ├── embedder.py        # Sentence embeddings
-│   ├── vector_store.py    # ChromaDB operations
-│   ├── prompt_builder.py  # LLM prompt templates
-│   ├── llm.py             # Ollama API calls
-│   └── storage/           # Books, chunks, history
+│   ├── main.py          # FastAPI routes
+│   ├── chunker.py       # PDF text chunking
+│   ├── embedder.py      # Sentence embeddings
+│   ├── vector_store.py  # ChromaDB operations
+│   ├── prompt_builder.py
+│   ├── llm.py           # Ollama/LLaMA 2
+│   └── gemini.py        # Google Gemini
 ├── frontend/
 │   └── src/
-│       ├── pages/         # UploadPage, ChatPage
-│       └── components/    # Sidebar, ChatWindow, MessageInput
-└── start.bat              # Windows one-click launcher
+│       ├── pages/       # ChatPage, KeyManagementPage
+│       └── components/  # Sidebar, ChatWindow, MessageInput, ...
+└── start.bat
 ```
-
----
 
 ## Notes
 
-- Sirf **text-based PDFs** kaam karti hain — scanned images support nahi
-- Max file size: **50MB**
-- Ollama locally run hona chahiye — internet LLM nahi use hota
+- API keys are stored locally in `backend/storage/settings.json` — never sent to any server
+- Scanned/image PDFs won't work — text-based PDFs only
